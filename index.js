@@ -26,6 +26,9 @@ function onInstallation(bot, installer) {
  * Configure the persistence options
  */
 
+ // Load process.env values from .env file
+require('dotenv').config();
+
 var config = {};
 if (process.env.MONGOLAB_URI) {
     var BotkitStorage = require('botkit-storage-mongo');
@@ -81,13 +84,38 @@ controller.on('rtm_close', function (bot) {
  */
 // BEGIN EDITING HERE!
 
+const mention = ['direct_mention', 'mention', 'direct_message'];
+const menu = [
+    {
+        name: 'Field Trip',
+        roaster: 'Counter Culture',
+        url: 'https://counterculturecoffee.com/shop/merchandise/field-trip-mug'
+    }, {
+        name: 'Mexican Radio',
+        roaster: 'Radio Roasters',
+        url: 'https://www.radioroasters.com/shop/mexradio2019'
+    }
+];
+// add menu from db or object model
+
 controller.on('bot_channel_join', function (bot, message) {
-    bot.reply(message, "I'm here!")
+    //add a coffee related phrase
+    bot.reply(message, "Its coffee time")
 });
 
-controller.hears('hello', 'direct_message', function (bot, message) {
+controller.hears('hello', mention, (bot, message) => {
     bot.reply(message, 'Hello!');
 });
+
+controller.hears('menu', mention, (bot, msg) => {
+    const a = `${menu[0].name} by: ${menu[0].roaster}`
+    a.link = menu[0].url;
+
+    const b = `${menu[1].name} by: ${menu[1].roaster}`
+    b.link = menu[1].url;
+
+    bot.reply(msg, `Today we have: \n - ${a} \n - ${b}`);
+})
 
 
 /**
