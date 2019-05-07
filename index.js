@@ -33,7 +33,7 @@ var config = {};
 if (process.env.MONGOLAB_URI) {
   var BotkitStorage = require("botkit-storage-mongo");
   config = {
-    storage: BotkitStorage({ mongoUri: process.env.MONGOLAB_URI })
+    storage: BotkitStorage({ mongoUri: process.env.MONGOLAB_URI , tables: ['coffee']})
   };
 } else {
   config = {
@@ -128,6 +128,29 @@ controller.hears("menu", mention, (bot, msg) => {
   b.link = menu[1].url;
 
   bot.reply(msg, `Today we have: \n - ${a} \n - ${b}`);
+});
+
+controller.hears(['add'], mention, (bot, msg) => {
+    const text = msg.text.replace('add', '').trim();
+    controller.storage.coffee.save({
+        id: Date.now(),
+        name: text
+    })
+    bot.reply(msg, `added: ${text}`);
+
+    controller.storage.coffee.all((err, coffee) => {
+      // create a unique, querable id
+      // model the db for consistent writing
+      // make a convesation so the user can add name and brand
+
+      if (err) return console.error(err);
+      if(coffee) {
+        bot.reply(msg, `Here's a list of our coffees`);
+        coffee.forEach((bean) => {
+          bot.reply(msg, bean.name);
+        });
+      }
+    });
 });
 
 /**
