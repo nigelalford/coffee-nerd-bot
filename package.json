@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "The awesomest bot evar.",
   "main": "index.js",
+  "watch": {
+    "start": "*.js"
+  },
   "scripts": {
+    "watch": "npm-watch",
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -28,6 +32,7 @@
     "botkit": "0.2.2",
     "botkit-storage-mongo": "^1.0.2",
     "dotenv": "^8.0.0",
-    "mongodb": "^1.4.39"
+    "mongodb": "^1.4.39",
+    "npm-watch": "^0.6.0"
   }
 }
