@@ -1,32 +1,38 @@
 {
-  "name": "easy-peasy-bot",
+  "name": "coffee-nerd",
   "version": "1.0.0",
   "description": "The awesomest bot evar.",
   "main": "index.js",
+  "watch": {
+    "start": "*.js"
+  },
   "scripts": {
+    "watch": "npm-watch",
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DEGoodmanWilson/easy-peasy-bot-app.git"
+    "url": "git+https://github.com/nigelalford/easy-peasy-bot"
   },
   "keywords": [
     "slack",
     "bot"
   ],
-  "author": "D.E. Goodman-Wilson",
+  "author": "Nigel Alford",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/DEGoodmanWilson/easy-peasy-bot-app/issues"
+    "url": "https://github.com/nigelalford/easy-peasy-bot/issues"
   },
-  "homepage": "https://github.com/DEGoodmanWilson/easy-peasy-bot-app#readme",
+  "homepage": "https://github.com/nigelalford/easy-peasy-bot#readme",
   "engines": {
     "node": "5.1.1"
   },
   "dependencies": {
     "botkit": "0.2.2",
     "botkit-storage-mongo": "^1.0.2",
-    "mongodb": "^1.4.39"
+    "dotenv": "^8.0.0",
+    "mongodb": "^1.4.39",
+    "npm-watch": "^0.6.0"
   }
 }

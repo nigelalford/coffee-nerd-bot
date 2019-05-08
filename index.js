@@ -2,40 +2,48 @@
  * A Bot for Slack!
  */
 
-
 /**
  * Define a function for initiating a conversation on installation
  * With custom integrations, we don't have a way to find out who installed us, so we can't message them :(
  */
 
 function onInstallation(bot, installer) {
-    if (installer) {
-        bot.startPrivateConversation({user: installer}, function (err, convo) {
-            if (err) {
-                console.log(err);
-            } else {
-                convo.say('I am a bot that has just joined your team');
-                convo.say('You must now /invite me to a channel so that I can be of use!');
-            }
-        });
-    }
+  if (installer) {
+    bot.startPrivateConversation({ user: installer }, function(err, convo) {
+      if (err) {
+        console.log(err);
+      } else {
+        convo.say("I am a bot that has just joined your team");
+        convo.say(
+          "You must now /invite me to a channel so that I can be of use!"
+        );
+      }
+    });
+  }
 }
-
 
 /**
  * Configure the persistence options
  */
 
+// Load process.env values from .env file
+require("dotenv").config();
+
 var config = {};
 if (process.env.MONGOLAB_URI) {
-    var BotkitStorage = require('botkit-storage-mongo');
-    config = {
-        storage: BotkitStorage({mongoUri: process.env.MONGOLAB_URI}),
-    };
+  var BotkitStorage = require("botkit-storage-mongo");
+  config = {
+    storage: BotkitStorage({
+      mongoUri: process.env.MONGOLAB_URI,
+      tables: ["coffee"]
+    })
+  };
 } else {
-    config = {
-        json_file_store: ((process.env.TOKEN)?'./db_slack_bot_ci/':'./db_slack_bot_a/'), //use a different name if an app or CI
-    };
+  config = {
+    json_file_store: process.env.TOKEN
+      ? "./db_slack_bot_ci/"
+      : "./db_slack_bot_a/" //use a different name if an app or CI
+  };
 }
 
 /**
@@ -43,19 +51,30 @@ if (process.env.MONGOLAB_URI) {
  */
 
 if (process.env.TOKEN || process.env.SLACK_TOKEN) {
-    //Treat this as a custom integration
-    var customIntegration = require('./lib/custom_integrations');
-    var token = (process.env.TOKEN) ? process.env.TOKEN : process.env.SLACK_TOKEN;
-    var controller = customIntegration.configure(token, config, onInstallation);
-} else if (process.env.CLIENT_ID && process.env.CLIENT_SECRET && process.env.PORT) {
-    //Treat this as an app
-    var app = require('./lib/apps');
-    var controller = app.configure(process.env.PORT, process.env.CLIENT_ID, process.env.CLIENT_SECRET, config, onInstallation);
+  //Treat this as a custom integration
+  var customIntegration = require("./lib/custom_integrations");
+  var token = process.env.TOKEN ? process.env.TOKEN : process.env.SLACK_TOKEN;
+  var controller = customIntegration.configure(token, config, onInstallation);
+} else if (
+  process.env.CLIENT_ID &&
+  process.env.CLIENT_SECRET &&
+  process.env.PORT
+) {
+  //Treat this as an app
+  var app = require("./lib/apps");
+  var controller = app.configure(
+    process.env.PORT,
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    config,
+    onInstallation
+  );
 } else {
-    console.log('Error: If this is a custom integration, please specify TOKEN in the environment. If this is an app, please specify CLIENTID, CLIENTSECRET, and PORT in the environment');
-    process.exit(1);
+  console.log(
+    "Error: If this is a custom integration, please specify TOKEN in the environment. If this is an app, please specify CLIENTID, CLIENTSECRET, and PORT in the environment"
+  );
+  process.exit(1);
 }
-
 
 /**
  * A demonstration for how to handle websocket events. In this case, just log when we have and have not
@@ -66,29 +85,98 @@ if (process.env.TOKEN || process.env.SLACK_TOKEN) {
  * TODO: fixed b0rked reconnect behavior
  */
 // Handle events related to the websocket connection to Slack
-controller.on('rtm_open', function (bot) {
-    console.log('** The RTM api just connected!');
+controller.on("rtm_open", function(bot) {
+  console.log("** The RTM api just connected!");
 });
 
-controller.on('rtm_close', function (bot) {
-    console.log('** The RTM api just closed');
-    // you may want to attempt to re-open
+controller.on("rtm_close", function(bot) {
+  console.log("** The RTM api just closed");
+  // you may want to attempt to re-open
 });
-
 
 /**
  * Core bot logic goes here!
  */
 // BEGIN EDITING HERE!
 
-controller.on('bot_channel_join', function (bot, message) {
-    bot.reply(message, "I'm here!")
+const mention = ["direct_mention", "mention", "direct_message"];
+const menu = [
+  {
+    name: "Field Trip",
+    roaster: "Counter Culture",
+    url: "https://counterculturecoffee.com/shop/merchandise/field-trip-mug"
+  },
+  {
+    name: "Mexican Radio",
+    roaster: "Radio Roasters",
+    url: "https://www.radioroasters.com/shop/mexradio2019"
+  }
+];
+// add menu from db or object model
+
+controller.on("bot_channel_join", function(bot, message) {
+  //add a coffee related phrase
+  bot.reply(message, "Its coffee time");
 });
 
-controller.hears('hello', 'direct_message', function (bot, message) {
-    bot.reply(message, 'Hello!');
+controller.hears("hello", mention, (bot, message) => {
+  bot.reply(message, "Hello!");
 });
 
+controller.hears(["add"], mention, (bot, msg) => {
+  const text = msg.text.replace("add", "").trim();
+  controller.storage.coffee.save({
+    id: Date.now(),
+    name: text
+  });
+  bot.reply(msg, `added: ${text}`);
+
+  controller.storage.coffee.all((err, coffee) => {
+    if (err) return console.error(err);
+    if (coffee) {
+      bot.reply(msg, `Here's a list of our coffees`);
+      coffee.forEach(bean => {
+        bot.reply(msg, bean.name);
+      });
+    }
+  });
+});
+
+controller.hears("menu", mention, (bot, msg) => {
+  bot.reply(msg, "let me see what we have...");
+  if (menu) {
+    menu.forEach(({ name, roaster, url }) => {
+      const u = url || "http://www.google.com";
+
+      bot.reply(msg, {
+        text: `<${u}|${name}> by: *${roaster}*`,
+        attachments: [
+          {
+            fallback: "ranking is down, check back later",
+            color: "#3AA3E3",
+            attachment_type: "default",
+            actions: [
+              {
+                text: ":thumbsup:",
+                name: name,
+                type: "button",
+                value: true
+              },
+              {
+                text: ":thumbsdown:",
+                name: name,
+                type: "button",
+                value: false
+              }
+            ]
+          }
+        ]
+      });
+    });
+  } else {
+    bot.reply("sorry bro, try again");
+  }
+});
 
 /**
  * AN example of what could be:
