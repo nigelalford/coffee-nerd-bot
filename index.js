@@ -33,7 +33,10 @@ var config = {};
 if (process.env.MONGOLAB_URI) {
   var BotkitStorage = require("botkit-storage-mongo");
   config = {
-    storage: BotkitStorage({ mongoUri: process.env.MONGOLAB_URI , tables: ['coffee']})
+    storage: BotkitStorage({
+      mongoUri: process.env.MONGOLAB_URI,
+      tables: ["coffee"]
+    })
   };
 } else {
   config = {
@@ -120,37 +123,59 @@ controller.hears("hello", mention, (bot, message) => {
   bot.reply(message, "Hello!");
 });
 
-controller.hears("menu", mention, (bot, msg) => {
-  const a = `${menu[0].name} by: ${menu[0].roaster}`;
-  a.link = menu[0].url;
+controller.hears(["add"], mention, (bot, msg) => {
+  const text = msg.text.replace("add", "").trim();
+  controller.storage.coffee.save({
+    id: Date.now(),
+    name: text
+  });
+  bot.reply(msg, `added: ${text}`);
 
-  const b = `${menu[1].name} by: ${menu[1].roaster}`;
-  b.link = menu[1].url;
-
-  bot.reply(msg, `Today we have: \n - ${a} \n - ${b}`);
+  controller.storage.coffee.all((err, coffee) => {
+    if (err) return console.error(err);
+    if (coffee) {
+      bot.reply(msg, `Here's a list of our coffees`);
+      coffee.forEach(bean => {
+        bot.reply(msg, bean.name);
+      });
+    }
+  });
 });
 
-controller.hears(['add'], mention, (bot, msg) => {
-    const text = msg.text.replace('add', '').trim();
-    controller.storage.coffee.save({
-        id: Date.now(),
-        name: text
-    })
-    bot.reply(msg, `added: ${text}`);
+controller.hears("menu", mention, (bot, msg) => {
+  bot.reply(msg, "let me see what we have...");
+  if (menu) {
+    menu.forEach(({ name, roaster, url }) => {
+      const u = url || "http://www.google.com";
 
-    controller.storage.coffee.all((err, coffee) => {
-      // create a unique, querable id
-      // model the db for consistent writing
-      // make a convesation so the user can add name and brand
-
-      if (err) return console.error(err);
-      if(coffee) {
-        bot.reply(msg, `Here's a list of our coffees`);
-        coffee.forEach((bean) => {
-          bot.reply(msg, bean.name);
-        });
-      }
+      bot.reply(msg, {
+        text: `<${u}|${name}> by: *${roaster}*`,
+        attachments: [
+          {
+            fallback: "ranking is down, check back later",
+            color: "#3AA3E3",
+            attachment_type: "default",
+            actions: [
+              {
+                text: ":thumbsup:",
+                name: name,
+                type: "button",
+                value: true
+              },
+              {
+                text: ":thumbsdown:",
+                name: name,
+                type: "button",
+                value: false
+              }
+            ]
+          }
+        ]
+      });
     });
+  } else {
+    bot.reply("sorry bro, try again");
+  }
 });
 
 /**
