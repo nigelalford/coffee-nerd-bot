@@ -110,7 +110,9 @@ controller.hears(["add coffee: "], mention, (bot, msg) => {
     id: name.concat(roaster.toLowerCase().replace(/ /g,'')),
     name,
     roaster,
-    brew: null
+    brew: null,
+    likes: 0,
+    dislikes: 0
   });
 
   bot.reply(msg, `added: ${name}`);
