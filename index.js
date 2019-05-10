@@ -1,8 +1,4 @@
 /**
- * A Bot for Slack!
- */
-
-/**
  * Define a function for initiating a conversation on installation
  * With custom integrations, we don't have a way to find out who installed us, so we can't message them :(
  */
@@ -77,14 +73,9 @@ if (process.env.TOKEN || process.env.SLACK_TOKEN) {
 }
 
 /**
- * A demonstration for how to handle websocket events. In this case, just log when we have and have not
- * been disconnected from the websocket. In the future, it would be super awesome to be able to specify
- * a reconnect policy, and do reconnections automatically. In the meantime, we aren't going to attempt reconnects,
- * WHICH IS A B0RKED WAY TO HANDLE BEING DISCONNECTED. So we need to fix this.
- *
- * TODO: fixed b0rked reconnect behavior
- */
-// Handle events related to the websocket connection to Slack
+TODO: Move off RTM
+**/
+
 controller.on("rtm_open", function(bot) {
   console.log("** The RTM api just connected!");
 });
@@ -94,25 +85,9 @@ controller.on("rtm_close", function(bot) {
   // you may want to attempt to re-open
 });
 
-/**
- * Core bot logic goes here!
- */
-// BEGIN EDITING HERE!
 
+// Temporary solution before natural language processing
 const mention = ["direct_mention", "mention", "direct_message"];
-const menu = [
-  {
-    name: "Field Trip",
-    roaster: "Counter Culture",
-    url: "https://counterculturecoffee.com/shop/merchandise/field-trip-mug"
-  },
-  {
-    name: "Mexican Radio",
-    roaster: "Radio Roasters",
-    url: "https://www.radioroasters.com/shop/mexradio2019"
-  }
-];
-// add menu from db or object model
 
 controller.on("bot_channel_join", function(bot, message) {
   //add a coffee related phrase
@@ -123,59 +98,79 @@ controller.hears("hello", mention, (bot, message) => {
   bot.reply(message, "Hello!");
 });
 
-controller.hears(["add"], mention, (bot, msg) => {
-  const text = msg.text.replace("add", "").trim();
+controller.hears(["add coffee: "], mention, (bot, msg) => {
+  const name = msg.text
+    .substring(msg.text.lastIndexOf("coffee:") + 8, msg.text.lastIndexOf("by"))
+    .trim();
+  const roaster = msg.text
+    .substring(msg.text.lastIndexOf("by") + 2, msg.text.length)
+    .trim();
+
   controller.storage.coffee.save({
-    id: Date.now(),
-    name: text
+    id: name.concat(roaster.toLowerCase().replace(/ /g,'')),
+    name,
+    roaster,
+    brew: null
   });
-  bot.reply(msg, `added: ${text}`);
+
+  bot.reply(msg, `added: ${name}`);
 
   controller.storage.coffee.all((err, coffee) => {
     if (err) return console.error(err);
     if (coffee) {
-      bot.reply(msg, `Here's a list of our coffees`);
-      coffee.forEach(bean => {
-        bot.reply(msg, bean.name);
-      });
+      let coffeeList = `*Here's a list of our coffees:* \n`;
+      coffee.forEach(bean => coffeeList += `\n :coffee: ${bean.name} by ${bean.roaster}`);
+      bot.reply(msg, coffeeList);
     }
   });
 });
 
 controller.hears("menu", mention, (bot, msg) => {
-  bot.reply(msg, "let me see what we have...");
-  if (menu) {
-    menu.forEach(({ name, roaster, url }) => {
-      const u = url || "http://www.google.com";
+  // table look-up all the coffee's brew date is today
 
-      bot.reply(msg, {
-        text: `<${u}|${name}> by: *${roaster}*`,
-        attachments: [
-          {
-            fallback: "ranking is down, check back later",
-            color: "#3AA3E3",
-            attachment_type: "default",
-            actions: [
-              {
-                text: ":thumbsup:",
-                name: name,
-                type: "button",
-                value: true
-              },
-              {
-                text: ":thumbsdown:",
-                name: name,
-                type: "button",
-                value: false
-              }
-            ]
-          }
-        ]
+  bot.reply(msg, "looking...");
+  var start = new Date();
+  start.setHours(0,0,0,0);
+
+  var end = new Date();
+  end.setHours(23,59,59,999);
+
+  controller.storage.coffee.find({brew: {$gte: start, $lt: end}}, (error, coffee) => {
+    if (error) return console.error(error);
+    if (coffee) {
+      coffee.forEach(({ name, roaster, url }) => {
+        const u = url || "http://www.google.com";
+
+        bot.reply(msg, {
+          text: `<${u}|${name}> by: *${roaster}*`,
+          attachments: [
+            {
+              fallback: "ranking is down, check back later",
+              color: "#3AA3E3",
+              attachment_type: "default",
+              actions: [
+                {
+                  text: ":thumbsup:",
+                  name: name,
+                  type: "button",
+                  value: true
+                },
+                {
+                  text: ":thumbsdown:",
+                  name: name,
+                  type: "button",
+                  value: false
+                }
+              ]
+            }
+          ]
+        });
       });
-    });
-  } else {
-    bot.reply("sorry bro, try again");
-  }
+    } else {
+      bot.reply("sorry bro, try again");
+    }
+  });
+
 });
 
 /**
