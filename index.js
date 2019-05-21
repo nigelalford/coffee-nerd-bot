@@ -28,17 +28,20 @@ controller.hears(['add coffee: '], mention, (bot, msg) => {
   const roaster = msg.text
     .substring(msg.text.lastIndexOf('by') + 2, msg.text.length)
     .trim();
-
-  controller.storage.coffee.save({
+  
+  const newFood = {
     id: name.concat(roaster.toLowerCase().replace(/ /g, '')),
     name,
     roaster,
     brew: new Date(),
     likes: 0,
     dislikes: 0
+  };
+
+  controller.storage.coffee.save(newFood, (err) => {
+    if(err) console.error('firestore error' + err);
   });
 
-  bot.reply(msg, `added: ${name}`);
 
   controller.storage.coffee.all((err, coffee) => {
     if (err) return console.error(err);
