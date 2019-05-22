@@ -33,3 +33,5 @@ db_slack_bot_a/*
 
 # environment variables
 **.env
+
+pantry-api-secret.json
