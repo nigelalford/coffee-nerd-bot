@@ -1,3 +1,4 @@
+require('@google-cloud/debug-agent').start();
 var controller = require('./lib/apps').pantryBot();
 let count = 0;
 
