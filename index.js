@@ -16,9 +16,6 @@ function query(query) {
   });
 }
 
-/**
-TODO: Move off RTM
-**/
 
 controller.on('rtm_open', function(bot) {
   console.log('** The RTM api just connected!');

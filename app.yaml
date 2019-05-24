@@ -1,1 +1,4 @@
 runtime: nodejs8
+instance_class: B4
+manual_scaling:
+  instances: 5
